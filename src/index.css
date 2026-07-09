@@ -1,0 +1,41 @@
+:root {
+  --bg: #0a0a16;
+  --bg-deep: #050510;
+  --accent: #4d4fee;
+  --accent-soft: rgba(77, 79, 238, 0.16);
+  --terminal-bg: #eef0fb;
+  --terminal-text: #2a2fd0;
+  --text: #c7c9e8;
+  --text-h: #f3f4ff;
+  --mono: ui-monospace, "Courier New", Consolas, monospace;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg-deep);
+  font: 16px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
