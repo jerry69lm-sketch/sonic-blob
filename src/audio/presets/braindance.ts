@@ -75,10 +75,12 @@ export const braindancePreset: Preset = {
         acid.triggerAttackRelease(note, "16n", time, 0.55 + analysis.edgeDensity * 0.3);
       }
 
-      const hatProb = 0.3 + analysis.edgeDensity * 0.55;
-      if (Math.random() < hatProb) {
+      // scan across the frame left-to-right, one column per step; only pop
+      // the hi-hat when the scan crosses an actual edge in that column
+      const scanEdge = analysis.columns[s] ?? 0;
+      if (scanEdge > 0.16) {
         const jitter = (Math.random() - 0.5) * 0.015;
-        hihat.triggerAttackRelease("32n", time + jitter, 0.15 + analysis.edgeDensity * 0.4);
+        hihat.triggerAttackRelease("32n", time + jitter, 0.2 + scanEdge * 0.6);
       }
 
       if ((s === 0 || s === 8) && analysis.brightness > 0.3 && Math.random() < 0.6) {

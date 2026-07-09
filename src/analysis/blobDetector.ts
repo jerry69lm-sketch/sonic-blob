@@ -6,6 +6,7 @@ const MIN_AREA_FRAC = 0.004; // ignore specks
 const MAX_AREA_FRAC = 0.55; // ignore near-whole-frame blob
 const MAX_BLOBS = 14;
 const MATCH_DIST = 0.12; // normalized distance for ID continuity
+const SCAN_COLUMNS = 16; // matches the 16-step sequencer, one column per step
 
 function otsuThreshold(gray: Uint8ClampedArray): number {
   const hist = new Array(256).fill(0);
@@ -128,9 +129,10 @@ export class BlobDetector {
     }
     const contrast = Math.min(1, Math.sqrt(variance / gray.length) * 3);
 
-    // Sobel edge magnitude + density
-    let edgeSum = 0;
+    // Sobel edge magnitude + density, bucketed into scan columns left-to-right
     let edgeCount = 0;
+    const columnSum = new Float32Array(SCAN_COLUMNS);
+    const columnCount = new Int32Array(SCAN_COLUMNS);
     for (let y = 1; y < h - 1; y++) {
       for (let x = 1; x < w - 1; x++) {
         const i = y * w + x;
@@ -141,11 +143,14 @@ export class BlobDetector {
           -gray[i - w - 1] - 2 * gray[i - w] - gray[i - w + 1] +
           gray[i + w - 1] + 2 * gray[i + w] + gray[i + w + 1];
         const mag = Math.sqrt(gx * gx + gy * gy) / 1020;
-        edgeSum += mag;
         if (mag > 0.18) edgeCount++;
+        const col = Math.min(SCAN_COLUMNS - 1, (x / w) * SCAN_COLUMNS | 0);
+        columnSum[col] += mag;
+        columnCount[col]++;
       }
     }
     const edgeDensity = Math.min(1, edgeCount / ((w - 2) * (h - 2)) * 3);
+    const columns = Array.from(columnSum, (s, i) => Math.min(1, (s / Math.max(1, columnCount[i])) * 3));
 
     // Blob mask via Otsu threshold around the brighter side of the histogram
     const threshold = otsuThreshold(gray);
@@ -193,6 +198,6 @@ export class BlobDetector {
 
     this.tracked = candidates;
 
-    return { blobs: candidates, edgeDensity, brightness, contrast };
+    return { blobs: candidates, edgeDensity, brightness, contrast, columns };
   }
 }

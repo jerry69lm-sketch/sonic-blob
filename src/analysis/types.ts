@@ -12,6 +12,7 @@ export interface AnalysisState {
   edgeDensity: number; // 0..1
   brightness: number; // 0..1
   contrast: number; // 0..1
+  columns: number[]; // per-column edge magnitude, left to right, 0..1
 }
 
 export const emptyAnalysis: AnalysisState = {
@@ -19,4 +20,5 @@ export const emptyAnalysis: AnalysisState = {
   edgeDensity: 0,
   brightness: 0,
   contrast: 0,
+  columns: [],
 };

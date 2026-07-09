@@ -64,11 +64,13 @@ export const deconstructedClubPreset: Preset = {
         clap.triggerAttackRelease("8n", time, 0.8);
       }
 
-      const hatProb = 0.22 + analysis.edgeDensity * 0.6;
-      if (Math.random() < hatProb) {
-        hihat.triggerAttackRelease("32n", time, 0.15 + analysis.edgeDensity * 0.5);
-        if (analysis.edgeDensity > 0.5) {
-          hihat.triggerAttackRelease("32n", time + Tone.Time("64n").toSeconds(), 0.2 + analysis.edgeDensity * 0.4);
+      // scan across the frame left-to-right, one column per step; only pop
+      // the hi-hat when the scan crosses an actual edge in that column
+      const scanEdge = analysis.columns[s] ?? 0;
+      if (scanEdge > 0.16) {
+        hihat.triggerAttackRelease("32n", time, 0.2 + scanEdge * 0.5);
+        if (scanEdge > 0.4) {
+          hihat.triggerAttackRelease("32n", time + Tone.Time("64n").toSeconds(), 0.25 + scanEdge * 0.4);
         }
       }
 

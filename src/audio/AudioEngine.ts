@@ -2,6 +2,7 @@ import * as Tone from "tone";
 import { emptyAnalysis, type AnalysisState } from "../analysis/types";
 import type { Preset } from "./presets/types";
 import { defaultMusicParams, type MusicParams } from "./scales";
+import { unlockMobileSpeakerAudio } from "./silentUnlock";
 
 export class AudioEngine {
   private started = false;
@@ -12,6 +13,7 @@ export class AudioEngine {
 
   async start() {
     if (this.started) return;
+    unlockMobileSpeakerAudio();
     await Tone.start();
     this.started = true;
   }
