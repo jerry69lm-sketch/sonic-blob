@@ -14,7 +14,6 @@ export function ParamsPage() {
     scaleNames,
     noteNames,
   } = useApp();
-  const activePreset = presetsList.find((p) => p.id === presetId)!;
 
   return (
     <div className="params-page">
@@ -63,8 +62,6 @@ export function ParamsPage() {
           ))}
         </select>
       </div>
-
-      <p className="params-hint">{activePreset.description}</p>
     </div>
   );
 }
