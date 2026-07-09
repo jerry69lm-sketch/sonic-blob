@@ -8,7 +8,7 @@ export const deconstructedClubPreset: Preset = {
   bpm: 140,
   enabled: true,
   description:
-    'KAVARI x KOPI O "If You Live (Body Bags)"-inspired: half-time dark dubstep with an LFO wobble sub, a low distorted growl voice standing in for the vocal, and a brooding drone underneath.',
+    'KAVARI x KOPI O "If You Live (Body Bags)": half-time dark dubstep with an LFO wobble sub, a low distorted growl voice standing in for the vocal, and a brooding drone underneath.',
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-1).toDestination();
     const masterDistortion = new Tone.Distortion({ distortion: 0.35, wet: 0.25 }).connect(limiter);

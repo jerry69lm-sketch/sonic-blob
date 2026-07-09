@@ -8,7 +8,7 @@ export const ambientPreset: Preset = {
   bpm: 85,
   enabled: true,
   description:
-    "Ecco2k PXE-inspired: a glassy autotune-like lead follows blob movement over slow pad chords, bitcrushed vocal-chop stutters scan the frame with a pitch slide-off, and glitch bursts bite on contrast spikes.",
+    "Ecco2k PXE: a glassy autotune-like lead follows blob movement over slow pad chords, bitcrushed vocal-chop stutters scan the frame with a pitch slide-off, and glitch bursts bite on contrast spikes.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-2).toDestination();
     const reverb = new Tone.Freeverb({ roomSize: 0.85, dampening: 3500, wet: 0.4 }).connect(limiter);

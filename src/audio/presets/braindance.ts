@@ -11,7 +11,7 @@ export const braindancePreset: Preset = {
   bpm: 136,
   enabled: true,
   description:
-    "Aphex Twin-inspired acid/IDM: squelchy 303 bass swept by edge density and keyed to blob count, a broken/glitchy beat, sparse FM chimes on bright frames.",
+    "Aphex Twin acid/IDM: squelchy 303 bass swept by edge density and keyed to blob count, a broken/glitchy beat, sparse FM chimes on bright frames.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-1).toDestination();
     const delay = new Tone.FeedbackDelay({ delayTime: "16n.", feedback: 0.28, wet: 0.16 }).connect(limiter);
