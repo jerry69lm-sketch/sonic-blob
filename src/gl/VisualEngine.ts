@@ -48,13 +48,13 @@ export interface VisualParams {
 }
 
 export const defaultVisualParams: VisualParams = {
-  thresholdA: 0.25,
-  thresholdB: 0.45,
-  aberration: 0.004,
-  bloomIntensity: 0.9,
-  bloomThreshold: 0.45,
-  trailDecay: 0.78,
-  baseDesat: 0.08,
+  thresholdA: 0.4,
+  thresholdB: 0.62,
+  aberration: 0.003,
+  bloomIntensity: 0.35,
+  bloomThreshold: 0.7,
+  trailDecay: 0.55,
+  baseDesat: 0.05,
   colorA: new THREE.Vector3(0.55, 0.95, 1.0),
   colorB: new THREE.Vector3(1.0, 0.85, 0.98),
   tint: new THREE.Vector3(1.0, 1.0, 1.0),
