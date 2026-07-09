@@ -144,26 +144,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [webcamStatus, facing, videoRef]);
 
+  const engaging = useRef(false);
+
   const engage = useCallback(async () => {
-    const preset = presets.find((p) => p.id === presetId)!;
-    if (mode === "live" && webcamStatus !== "ready") {
-      addLog("REQUESTING_CAMERA_ACCESS...");
-      const ok = await startWebcam(facing);
-      if (!ok) {
-        addLog("ERR: CAMERA_ACCESS_DENIED");
+    if (engaging.current) return;
+    engaging.current = true;
+    try {
+      const preset = presets.find((p) => p.id === presetId)!;
+      if (mode === "live" && webcamStatus !== "ready") {
+        addLog("REQUESTING_CAMERA_ACCESS...");
+        const ok = await startWebcam(facing);
+        if (!ok) {
+          addLog("ERR: CAMERA_ACCESS_DENIED");
+          return;
+        }
+        addLog("CAMERA_ACCESS_GRANTED");
+      }
+      if (mode === "static" && !imgRef.current) {
+        addLog("ERR: NO_IMAGE_LOADED");
         return;
       }
-      addLog("CAMERA_ACCESS_GRANTED");
+      await audioRef.current.start();
+      audioRef.current.setBpm(bpm);
+      audioRef.current.setPreset(preset);
+      addLog(`SEQUENCER_ENGAGED @ ${preset.label.toUpperCase()} ${bpm}BPM`);
+      setRunning(true);
+    } finally {
+      engaging.current = false;
     }
-    if (mode === "static" && !imgRef.current) {
-      addLog("ERR: NO_IMAGE_LOADED");
-      return;
-    }
-    await audioRef.current.start();
-    audioRef.current.setBpm(bpm);
-    audioRef.current.setPreset(preset);
-    addLog(`SEQUENCER_ENGAGED @ ${preset.label.toUpperCase()} ${bpm}BPM`);
-    setRunning(true);
   }, [mode, webcamStatus, presetId, bpm, facing, startWebcam, addLog]);
 
   const disengage = useCallback(() => {

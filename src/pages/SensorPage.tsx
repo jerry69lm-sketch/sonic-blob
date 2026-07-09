@@ -62,12 +62,14 @@ export function SensorPage() {
         <div className="cam-row">
           <button
             className={`cam-btn ${facing === "user" && webcamStatus === "ready" ? "active" : ""}`}
+            disabled={webcamStatus === "requesting"}
             onClick={() => selectCamera("user")}
           >
             FRONT CAM
           </button>
           <button
             className={`cam-btn ${facing === "environment" && webcamStatus === "ready" ? "active" : ""}`}
+            disabled={webcamStatus === "requesting"}
             onClick={() => selectCamera("environment")}
           >
             REAR CAM
@@ -81,8 +83,12 @@ export function SensorPage() {
         </div>
       )}
 
-      <button className="engage-btn" onClick={engageToggle}>
-        {running ? "|| DISENGAGE_SEQUENCER ||" : "|| ENGAGE_SEQUENCER ||"}
+      <button className="engage-btn" disabled={webcamStatus === "requesting"} onClick={engageToggle}>
+        {webcamStatus === "requesting"
+          ? "|| CONNECTING... ||"
+          : running
+            ? "|| DISENGAGE_SEQUENCER ||"
+            : "|| ENGAGE_SEQUENCER ||"}
       </button>
 
       <button className="save-btn" onClick={saveSequence}>
