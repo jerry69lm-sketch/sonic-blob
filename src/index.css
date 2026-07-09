@@ -1,12 +1,14 @@
 :root {
-  --bg: #0a0a16;
-  --bg-deep: #050510;
-  --accent: #4d4fee;
-  --accent-soft: rgba(77, 79, 238, 0.16);
-  --terminal-bg: #eef0fb;
-  --terminal-text: #2a2fd0;
-  --text: #c7c9e8;
-  --text-h: #f3f4ff;
+  --bg: #1e2f8c;
+  --bg-deep: #131f66;
+  --accent: #ffffff;
+  --accent-ink: #1e2f8c;
+  --accent-soft: rgba(255, 255, 255, 0.16);
+  --accent-soft-ink: rgba(30, 47, 140, 0.12);
+  --terminal-bg: #ffffff;
+  --terminal-text: #1e2f8c;
+  --text: #cbd4ff;
+  --text-h: #ffffff;
   --mono: ui-monospace, "Courier New", Consolas, monospace;
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   color-scheme: dark;

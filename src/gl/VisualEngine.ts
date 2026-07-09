@@ -117,6 +117,7 @@ export class VisualEngine {
       baseDesat: { value: this.params.baseDesat },
       tint: { value: this.params.tint },
       mirrorFlip: { value: 1 },
+      coverScale: { value: new THREE.Vector2(1, 1) },
     });
 
     this.brightPass = makePass(brightPassFragment, {
@@ -181,6 +182,8 @@ export class VisualEngine {
     this.mirror = mirror;
     this.sourceTexture = this.isVideo ? new THREE.VideoTexture(el as HTMLVideoElement) : new THREE.Texture(el as HTMLImageElement);
     this.sourceTexture.colorSpace = THREE.SRGBColorSpace;
+    this.sourceTexture.wrapS = THREE.ClampToEdgeWrapping;
+    this.sourceTexture.wrapT = THREE.ClampToEdgeWrapping;
     if (!this.isVideo) this.sourceTexture.needsUpdate = true;
     this.edgePass.material.uniforms.tDiffuse.value = this.sourceTexture;
     if (!this.looping) {
@@ -207,6 +210,16 @@ export class VisualEngine {
     this.renderer.render(pass.scene, pass.camera);
   }
 
+  private getSourceAspect(): number {
+    if (!this.sourceEl) return 16 / 9;
+    if (this.isVideo) {
+      const v = this.sourceEl as HTMLVideoElement;
+      return v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 16 / 9;
+    }
+    const img = this.sourceEl as HTMLImageElement;
+    return img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 4 / 3;
+  }
+
   private syncUniforms() {
     const p = this.params;
     const u = this.edgePass.material.uniforms;
@@ -215,6 +228,16 @@ export class VisualEngine {
     u.aberration.value = p.aberration;
     u.baseDesat.value = p.baseDesat;
     u.mirrorFlip.value = this.mirror ? 1 : 0;
+
+    const srcAspect = this.getSourceAspect();
+    const dstAspect = this.width / this.height;
+    const coverScale = u.coverScale.value as THREE.Vector2;
+    if (dstAspect > srcAspect) {
+      coverScale.set(1, srcAspect / dstAspect);
+    } else {
+      coverScale.set(dstAspect / srcAspect, 1);
+    }
+
     this.brightPass.material.uniforms.threshold.value = p.bloomThreshold;
     this.combinePass.material.uniforms.bloomIntensity.value = p.bloomIntensity;
     this.trailPass.material.uniforms.decay.value = p.trailDecay;

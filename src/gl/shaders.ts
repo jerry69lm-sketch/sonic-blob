@@ -19,6 +19,7 @@ export const edgeCompositeFragment = /* glsl */ `
   uniform float baseDesat;
   uniform vec3 tint;
   uniform float mirrorFlip;
+  uniform vec2 coverScale;
 
   float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
@@ -38,7 +39,8 @@ export const edgeCompositeFragment = /* glsl */ `
   }
 
   void main() {
-    vec2 uv = vec2(mix(vUv.x, 1.0 - vUv.x, mirrorFlip), vUv.y);
+    vec2 coveredUv = (vUv - 0.5) * coverScale + 0.5;
+    vec2 uv = vec2(mix(coveredUv.x, 1.0 - coveredUv.x, mirrorFlip), coveredUv.y);
 
     vec2 dir = uv - 0.5;
     vec2 aoff = dir * aberration;

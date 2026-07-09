@@ -100,14 +100,42 @@ export class BlobDetector {
     this.ctx = this.canvas.getContext("2d", { willReadFrequently: true })!;
   }
 
+  private getCoverRect(source: CanvasImageSource): { sx: number; sy: number; sw: number; sh: number } {
+    let srcW = 0;
+    let srcH = 0;
+    if (source instanceof HTMLVideoElement) {
+      srcW = source.videoWidth;
+      srcH = source.videoHeight;
+    } else if (source instanceof HTMLImageElement) {
+      srcW = source.naturalWidth;
+      srcH = source.naturalHeight;
+    }
+    if (!srcW || !srcH) return { sx: 0, sy: 0, sw: ANALYSIS_W, sh: ANALYSIS_H };
+    const srcAspect = srcW / srcH;
+    const dstAspect = ANALYSIS_W / ANALYSIS_H;
+    let sw = srcW;
+    let sh = srcH;
+    let sx = 0;
+    let sy = 0;
+    if (dstAspect > srcAspect) {
+      sh = srcW / dstAspect;
+      sy = (srcH - sh) / 2;
+    } else {
+      sw = srcH * dstAspect;
+      sx = (srcW - sw) / 2;
+    }
+    return { sx, sy, sw, sh };
+  }
+
   analyze(source: CanvasImageSource, mirror = true): AnalysisState {
     const ctx = this.ctx;
+    const { sx, sy, sw, sh } = this.getCoverRect(source);
     ctx.save();
     if (mirror) {
       ctx.translate(ANALYSIS_W, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(source, 0, 0, ANALYSIS_W, ANALYSIS_H);
+    ctx.drawImage(source, sx, sy, sw, sh, 0, 0, ANALYSIS_W, ANALYSIS_H);
     ctx.restore();
 
     const { data } = ctx.getImageData(0, 0, ANALYSIS_W, ANALYSIS_H);

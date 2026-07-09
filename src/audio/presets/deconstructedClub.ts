@@ -2,117 +2,105 @@ import * as Tone from "tone";
 import type { Preset } from "./types";
 import { buildScaleNotes } from "../scales";
 
-interface BarBeat {
-  kick: boolean;
-  crack: boolean;
-  metal: boolean;
-  screech: boolean;
-}
-
-function rollBar(density: number): BarBeat[] {
-  const pattern: BarBeat[] = [];
-  for (let i = 0; i < 16; i++) {
-    pattern.push({
-      kick: Math.random() < 0.22 + density * 0.3,
-      crack: Math.random() < 0.15 + density * 0.35,
-      metal: Math.random() < 0.12 + density * 0.25,
-      screech: Math.random() < 0.04 + density * 0.08,
-    });
-  }
-  return pattern;
-}
-
 export const deconstructedClubPreset: Preset = {
   id: "deconstructed-club",
   label: "Deconstructed Club",
-  bpm: 145,
+  bpm: 140,
   enabled: true,
   description:
-    "KAVARI-inspired: festival-banger fragments ripped apart and stitched back into overwhelming noise and crunch — whip-crack transients, screeches, sudden crashes, and a bass pattern that never lands the same way twice.",
+    'KAVARI x KOPI O "If You Live (Body Bags)"-inspired: half-time dark dubstep with an LFO wobble sub, a low distorted growl voice standing in for the vocal, and a brooding drone underneath.',
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-1).toDestination();
-    const masterDistortion = new Tone.Distortion({ distortion: 0.55, wet: 0.4 }).connect(limiter);
+    const masterDistortion = new Tone.Distortion({ distortion: 0.35, wet: 0.25 }).connect(limiter);
+    const reverb = new Tone.Freeverb({ roomSize: 0.75, dampening: 2500, wet: 0.22 }).connect(masterDistortion);
 
-    const bassCrush = new Tone.BitCrusher(5).connect(masterDistortion);
-    const bass = new Tone.MonoSynth({
-      oscillator: { type: "square" },
-      filter: { type: "lowpass", frequency: 450, Q: 5 },
-      envelope: { attack: 0.001, decay: 0.15, sustain: 0.2, release: 0.1 },
-      filterEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.15, release: 0.08, baseFrequency: 70, octaves: 4.5 },
-    }).connect(bassCrush);
-    bass.volume.value = -3;
+    // wobble sub: a resonant filter swept by an LFO for the classic dubstep wub
+    const wobbleFilter = new Tone.Filter({ type: "lowpass", frequency: 400, Q: 8 }).connect(masterDistortion);
+    const wobbleLfo = new Tone.LFO({ frequency: "8n", min: 150, max: 1400, type: "sine" });
+    wobbleLfo.connect(wobbleFilter.frequency);
+    wobbleLfo.start();
+    const subDistortion = new Tone.Distortion({ distortion: 0.4, wet: 0.3 }).connect(wobbleFilter);
+    const sub = new Tone.MonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", frequency: 3000, Q: 0.5 },
+      envelope: { attack: 0.01, decay: 0.1, sustain: 0.9, release: 0.3 },
+    }).connect(subDistortion);
+    sub.volume.value = -5;
 
-    const crackDistortion = new Tone.Distortion({ distortion: 0.9, wet: 0.7 }).connect(masterDistortion);
-    const crack = new Tone.NoiseSynth({
-      noise: { type: "white" },
-      envelope: { attack: 0.0005, decay: 0.03, sustain: 0 },
-    }).connect(crackDistortion);
-    crack.volume.value = -6;
+    // half-time snare, sparse kick
+    const snareFilter = new Tone.Filter({ type: "bandpass", frequency: 1800, Q: 1 }).connect(reverb);
+    const snareDistortion = new Tone.Distortion({ distortion: 0.5, wet: 0.35 }).connect(snareFilter);
+    const snare = new Tone.NoiseSynth({
+      noise: { type: "pink" },
+      envelope: { attack: 0.001, decay: 0.22, sustain: 0 },
+    }).connect(snareDistortion);
+    snare.volume.value = -8;
 
-    const screechFilter = new Tone.Filter({ type: "bandpass", frequency: 2000, Q: 18 }).connect(masterDistortion);
-    const screech = new Tone.FMSynth({
-      harmonicity: 7,
-      modulationIndex: 30,
-      envelope: { attack: 0.02, decay: 0.5, sustain: 0.1, release: 0.3 },
-      modulation: { type: "sawtooth" },
-    }).connect(screechFilter);
-    screech.volume.value = -14;
-
-    const metal = new Tone.MetalSynth({
-      envelope: { attack: 0.001, decay: 0.12, release: 0.04 },
-      harmonicity: 6.1,
-      modulationIndex: 26,
-      resonance: 3500,
-      octaves: 1.4,
+    const kick = new Tone.MembraneSynth({
+      pitchDecay: 0.05,
+      octaves: 6,
+      envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.4 },
     }).connect(masterDistortion);
-    metal.volume.value = -12;
 
-    const crashDistortion = new Tone.Distortion({ distortion: 0.85, wet: 0.65 }).connect(masterDistortion);
+    // dark drone bed
+    const droneFilter = new Tone.Filter({ type: "lowpass", frequency: 260, Q: 1 }).connect(reverb);
+    const drone = new Tone.FatOscillator({ type: "sawtooth", count: 3, spread: 35 }).connect(droneFilter);
+    drone.volume.value = -22;
+    drone.start();
+
+    // low distorted growl voice standing in for the featured vocal
+    const growlDistortion = new Tone.Distortion({ distortion: 0.6, wet: 0.5 }).connect(reverb);
+    const growl = new Tone.FMSynth({
+      harmonicity: 0.5,
+      modulationIndex: 4,
+      envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.4 },
+      modulation: { type: "square" },
+    }).connect(growlDistortion);
+    growl.volume.value = -14;
+
+    const crashDistortion = new Tone.Distortion({ distortion: 0.7, wet: 0.5 }).connect(masterDistortion);
     const crash = new Tone.NoiseSynth({
       noise: { type: "white" },
-      envelope: { attack: 0.001, decay: 0.35, sustain: 0 },
+      envelope: { attack: 0.001, decay: 0.3, sustain: 0 },
     }).connect(crashDistortion);
-    crash.volume.value = -8;
+    crash.volume.value = -12;
 
     let step = 0;
     let prevContrast = 0;
-    let barPattern: BarBeat[] = [];
 
     const loop = new Tone.Loop((time) => {
       const analysis = getAnalysis();
       const music = getMusic();
       const s = step % 16;
       const blobCount = analysis.blobs.length;
+      const lowScale = buildScaleNotes(music.rootNote, music.scaleName, -1, 1);
 
-      if (s === 0) {
-        barPattern = rollBar(analysis.edgeDensity);
-      }
-      const beat = barPattern[s] ?? { kick: false, crack: false, metal: false, screech: false };
+      wobbleLfo.min = 120 + analysis.edgeDensity * 200;
+      wobbleLfo.max = 900 + analysis.edgeDensity * 2000;
+      droneFilter.frequency.rampTo(140 + analysis.brightness * 500, 0.4);
+      drone.frequency.rampTo(Tone.Frequency(lowScale[0]).toFrequency(), 0.5);
 
-      if (beat.kick) {
+      if (s === 0 || s === 10) {
         const scale = buildScaleNotes(music.rootNote, music.scaleName, 0, 2);
-        const note = scale[(blobCount + s) % scale.length];
-        bass.triggerAttackRelease(note, "16n", time, 0.7 + Math.random() * 0.3);
+        const note = scale[blobCount % scale.length];
+        sub.triggerAttackRelease(note, "2n", time, 0.9);
       }
-      if (beat.crack) {
-        crack.triggerAttackRelease("32n", time, 0.6 + Math.random() * 0.4);
+
+      if (s === 0 || s === 6) {
+        kick.triggerAttackRelease("C1", "8n", time);
       }
-      if (beat.metal) {
-        metal.triggerAttackRelease("16n", time, 0.4 + Math.random() * 0.4);
-      }
-      if (beat.screech) {
-        screechFilter.frequency.rampTo(600 + Math.random() * 5000, 0.15);
-        screech.triggerAttackRelease("A3", "8n", time, 0.3 + analysis.contrast * 0.3);
+      if (s === 8) {
+        snare.triggerAttackRelease("4n", time, 0.85);
       }
 
       // scan across the frame left-to-right, one column per step
       const scanEdge = analysis.columns[s] ?? 0;
-      if (scanEdge > 0.2) {
-        metal.triggerAttackRelease("32n", time, 0.15 + scanEdge * 0.4);
+      if (scanEdge > 0.22 && Math.random() < 0.6) {
+        growl.triggerAttackRelease(lowScale[0], "8n", time, 0.3 + scanEdge * 0.3);
       }
 
-      if (Math.abs(analysis.contrast - prevContrast) > 0.1) {
-        crash.triggerAttackRelease("8n", time, 0.6 + analysis.contrast * 0.4);
+      if (Math.abs(analysis.contrast - prevContrast) > 0.15) {
+        crash.triggerAttackRelease("8n", time, 0.5 + analysis.contrast * 0.4);
       }
       prevContrast = analysis.contrast;
 
@@ -121,15 +109,21 @@ export const deconstructedClubPreset: Preset = {
 
     return () => {
       loop.dispose();
-      bass.dispose();
-      bassCrush.dispose();
-      crack.dispose();
-      crackDistortion.dispose();
-      screech.dispose();
-      screechFilter.dispose();
-      metal.dispose();
+      wobbleLfo.dispose();
+      wobbleFilter.dispose();
+      subDistortion.dispose();
+      sub.dispose();
+      snare.dispose();
+      snareFilter.dispose();
+      snareDistortion.dispose();
+      kick.dispose();
+      drone.dispose();
+      droneFilter.dispose();
+      growl.dispose();
+      growlDistortion.dispose();
       crash.dispose();
       crashDistortion.dispose();
+      reverb.dispose();
       masterDistortion.dispose();
       limiter.dispose();
     };

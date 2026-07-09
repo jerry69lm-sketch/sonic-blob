@@ -1,11 +1,11 @@
 .app {
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  border-inline: 1px solid rgba(77, 79, 238, 0.25);
+  border-inline: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* header */
@@ -85,19 +85,19 @@ h2:first-child {
 
 .mode-tab.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 /* stage */
 .stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   border: 2px solid var(--accent);
   border-radius: 4px;
   overflow: hidden;
   background: var(--bg-deep);
-  box-shadow: 0 0 16px rgba(77, 79, 238, 0.25);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.2);
   margin-bottom: 14px;
 }
 
@@ -119,7 +119,7 @@ h2:first-child {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 22, 0.55);
+  background: rgba(19, 31, 102, 0.65);
   border: none;
   color: var(--accent);
   font-family: var(--mono);
@@ -171,7 +171,7 @@ h2:first-child {
 
 .cam-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 .cam-btn:disabled {
@@ -184,7 +184,7 @@ h2:first-child {
   width: 100%;
   padding: 15px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
   border: none;
   border-radius: 4px;
   font-family: var(--mono);
@@ -221,7 +221,7 @@ h2:first-child {
   font-size: 10px;
   color: var(--accent);
   opacity: 0.75;
-  border-top: 1px solid rgba(77, 79, 238, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
 }
 
@@ -242,7 +242,7 @@ h2:first-child {
   padding: 10px 0 8px;
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-family: var(--mono);
   font-size: 9px;
   letter-spacing: 1px;
@@ -250,7 +250,7 @@ h2:first-child {
 }
 
 .nav-btn.active {
-  background: var(--accent-soft);
+  background: var(--accent-soft-ink);
 }
 
 /* params page */
@@ -277,7 +277,7 @@ h2:first-child {
 
 .preset-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 .preset-btn.disabled {
