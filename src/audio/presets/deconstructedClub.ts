@@ -2,51 +2,54 @@ import * as Tone from "tone";
 import type { Preset } from "./types";
 import { buildScaleNotes } from "../scales";
 
+const KICK_STEPS = new Set([0, 3, 8, 11]);
+const GHOST_STEPS = [1, 6, 9, 14];
+
 export const deconstructedClubPreset: Preset = {
   id: "deconstructed-club",
   label: "Deconstructed Club",
-  bpm: 140,
+  bpm: 145,
   enabled: true,
   description:
-    "Half-time trap clap, glide 808 sub driven by blob count, hi-hat rolls driven by edge density, glitch stabs on sudden blob jumps.",
+    "Kavari-inspired brutalist club: distorted glitch-jump sub, industrial metallic hits, a dark ambient drone bed, and noise blasts on contrast spikes.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-1).toDestination();
-    const reverb = new Tone.Freeverb({ roomSize: 0.6, dampening: 4000, wet: 0.14 }).connect(limiter);
-    const distortion = new Tone.Distortion({ distortion: 0.35, wet: 0.18 }).connect(reverb);
+    const masterDistortion = new Tone.Distortion({ distortion: 0.5, wet: 0.35 }).connect(limiter);
+    const reverb = new Tone.Freeverb({ roomSize: 0.8, dampening: 2000, wet: 0.2 }).connect(masterDistortion);
 
-    const sub = new Tone.MonoSynth({
-      oscillator: { type: "sine" },
-      filter: { type: "lowpass", Q: 2, rolloff: -24 },
-      envelope: { attack: 0.005, decay: 0.3, sustain: 0.4, release: 0.3 },
-      filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.3, baseFrequency: 120, octaves: 2.5 },
-      portamento: 0.06,
-    }).connect(distortion);
-    sub.volume.value = -4;
+    const bassDistortion = new Tone.Distortion({ distortion: 0.7, wet: 0.5 }).connect(masterDistortion);
+    const bassCrush = new Tone.BitCrusher(6).connect(bassDistortion);
+    const bass = new Tone.MonoSynth({
+      oscillator: { type: "square" },
+      filter: { type: "lowpass", frequency: 500, Q: 4 },
+      envelope: { attack: 0.001, decay: 0.2, sustain: 0.3, release: 0.15 },
+      filterEnvelope: { attack: 0.001, decay: 0.1, sustain: 0.2, release: 0.1, baseFrequency: 80, octaves: 4 },
+    }).connect(bassCrush);
+    bass.volume.value = -4;
 
-    const clapFilter = new Tone.Filter({ type: "bandpass", frequency: 1800, Q: 1.2 }).connect(reverb);
-    const clap = new Tone.NoiseSynth({
-      noise: { type: "pink" },
-      envelope: { attack: 0.001, decay: 0.18, sustain: 0 },
-    }).connect(clapFilter);
-    clap.volume.value = -10;
+    const metal = new Tone.MetalSynth({
+      envelope: { attack: 0.001, decay: 0.15, release: 0.05 },
+      harmonicity: 5.1,
+      modulationIndex: 22,
+      resonance: 3000,
+      octaves: 1.2,
+    }).connect(masterDistortion);
+    metal.volume.value = -14;
 
-    const hihatFilter = new Tone.Filter({ type: "highpass", frequency: 8000 }).connect(reverb);
-    const hihat = new Tone.NoiseSynth({
+    const droneFilter = new Tone.Filter({ type: "lowpass", frequency: 300, Q: 1 }).connect(reverb);
+    const drone = new Tone.FatOscillator({ type: "sawtooth", count: 3, spread: 40 }).connect(droneFilter);
+    drone.volume.value = -20;
+    drone.start();
+
+    const noiseDistortion = new Tone.Distortion({ distortion: 0.8, wet: 0.6 }).connect(masterDistortion);
+    const noiseBurst = new Tone.NoiseSynth({
       noise: { type: "white" },
-      envelope: { attack: 0.001, decay: 0.03, sustain: 0 },
-    }).connect(hihatFilter);
-    hihat.volume.value = -16;
-
-    const bitcrusher = new Tone.BitCrusher(4).connect(limiter);
-    const glitch = new Tone.FMSynth({
-      harmonicity: 3.5,
-      modulationIndex: 8,
-      envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 },
-    }).connect(bitcrusher);
-    glitch.volume.value = -12;
+      envelope: { attack: 0.001, decay: 0.3, sustain: 0 },
+    }).connect(noiseDistortion);
+    noiseBurst.volume.value = -16;
 
     let step = 0;
-    let prevBlobCount = 0;
+    let prevContrast = 0;
 
     const loop = new Tone.Loop((time) => {
       const analysis = getAnalysis();
@@ -54,47 +57,50 @@ export const deconstructedClubPreset: Preset = {
       const s = step % 16;
       const blobCount = analysis.blobs.length;
 
-      if (s === 0 || s === 10) {
+      droneFilter.frequency.rampTo(150 + analysis.brightness * 900, 0.3);
+      const droneScale = buildScaleNotes(music.rootNote, music.scaleName, -1, 1);
+      drone.frequency.rampTo(Tone.Frequency(droneScale[0]).toFrequency(), 0.5);
+
+      if (KICK_STEPS.has(s)) {
         const scale = buildScaleNotes(music.rootNote, music.scaleName, 0, 2);
         const note = scale[blobCount % scale.length];
-        sub.triggerAttackRelease(note, "4n", time, 0.9);
+        bass.triggerAttackRelease(note, "8n", time, 0.95);
+      }
+      if (GHOST_STEPS.includes(s) && Math.random() < 0.25 + analysis.contrast * 0.4) {
+        bass.triggerAttackRelease("C1", "16n", time, 0.5);
       }
 
-      if (s === 8) {
-        clap.triggerAttackRelease("8n", time, 0.8);
+      if (s === 4 || s === 12) {
+        metal.triggerAttackRelease("16n", time, 0.7);
       }
 
-      // scan across the frame left-to-right, one column per step; only pop
-      // the hi-hat when the scan crosses an actual edge in that column
+      // scan across the frame left-to-right, one column per step; the
+      // metallic tick only fires where the scan crosses a real edge
       const scanEdge = analysis.columns[s] ?? 0;
-      if (scanEdge > 0.16) {
-        hihat.triggerAttackRelease("32n", time, 0.2 + scanEdge * 0.5);
-        if (scanEdge > 0.4) {
-          hihat.triggerAttackRelease("32n", time + Tone.Time("64n").toSeconds(), 0.25 + scanEdge * 0.4);
-        }
+      if (scanEdge > 0.18) {
+        metal.triggerAttackRelease("32n", time, 0.15 + scanEdge * 0.4);
       }
 
-      if (Math.abs(blobCount - prevBlobCount) >= 2) {
-        const scale = buildScaleNotes(music.rootNote, music.scaleName, 2, 2);
-        const note = scale[Math.floor(Math.random() * scale.length)];
-        glitch.triggerAttackRelease(note, "16n", time, 0.6);
+      if (Math.abs(analysis.contrast - prevContrast) > 0.12) {
+        noiseBurst.triggerAttackRelease("8n", time, 0.5 + analysis.contrast * 0.4);
       }
-      prevBlobCount = blobCount;
+      prevContrast = analysis.contrast;
 
       step++;
     }, "16n").start(0);
 
     return () => {
       loop.dispose();
-      sub.dispose();
-      clap.dispose();
-      clapFilter.dispose();
-      hihat.dispose();
-      hihatFilter.dispose();
-      glitch.dispose();
-      bitcrusher.dispose();
-      distortion.dispose();
+      bass.dispose();
+      bassCrush.dispose();
+      bassDistortion.dispose();
+      metal.dispose();
+      drone.dispose();
+      droneFilter.dispose();
+      noiseBurst.dispose();
+      noiseDistortion.dispose();
       reverb.dispose();
+      masterDistortion.dispose();
       limiter.dispose();
     };
   },
