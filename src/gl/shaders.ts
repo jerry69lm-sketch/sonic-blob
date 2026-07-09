@@ -56,9 +56,9 @@ export const edgeCompositeFragment = /* glsl */ `
     float eA = smoothstep(thresholdA, thresholdA + 0.15, edgeFine);
     float eB = smoothstep(thresholdB, thresholdB + 0.28, edgeCoarse);
 
-    vec3 col = desat * 0.5;
-    col += colorA * eA;
-    col += colorB * eB * 0.75;
+    vec3 col = desat * 0.92;
+    col += colorA * eA * 0.7;
+    col += colorB * eB * 0.55;
 
     gl_FragColor = vec4(col, 1.0);
   }
