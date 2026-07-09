@@ -1,8 +1,8 @@
 import { braindancePreset } from "./braindance";
-import { deconstructedClubPreset } from "./deconstructedClub";
+import { witchHousePreset } from "./witchHouse";
 import { ambientPreset } from "./ambient";
 import type { Preset } from "./types";
 
-export const presets: Preset[] = [braindancePreset, deconstructedClubPreset, ambientPreset];
+export const presets: Preset[] = [braindancePreset, witchHousePreset, ambientPreset];
 
 export type { Preset };
