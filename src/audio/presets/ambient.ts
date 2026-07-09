@@ -5,98 +5,110 @@ import { buildScaleNotes } from "../scales";
 export const ambientPreset: Preset = {
   id: "ambient",
   label: "Ambient",
-  bpm: 88,
+  bpm: 138,
   enabled: true,
   description:
-    "Ecco2k PXE: a heavenly chorus pad, an ethereal/powerful distorted guitar-like lead, and heavily distorted vocal-chop noise bursts colliding in chaotic, glitchy stops and starts.",
+    "Ecco2k E: a cold, futuristic trap beat under an extremely high autotuned falsetto lead, gorgeous pristine synth pads, and glistening bell sparkle.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-2).toDestination();
-    const reverb = new Tone.Freeverb({ roomSize: 0.85, dampening: 3200, wet: 0.4 }).connect(limiter);
-    const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.3, wet: 0.2 }).connect(reverb);
-    const chorus = new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.6, wet: 0.5 }).connect(reverb);
+    const reverb = new Tone.Freeverb({ roomSize: 0.7, dampening: 4500, wet: 0.28 }).connect(limiter);
 
-    // heavenly chorus pad
+    // gorgeous pristine pad
     const pad = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "sine" },
-      envelope: { attack: 2.2, decay: 1, sustain: 0.8, release: 3.5 },
-    }).connect(chorus);
-    pad.volume.value = -15;
+      envelope: { attack: 2, decay: 1, sustain: 0.75, release: 3 },
+    }).connect(reverb);
+    pad.volume.value = -16;
 
-    // ethereal / powerful distorted guitar-like lead
-    const guitarDistortion = new Tone.Distortion({ distortion: 0.3, wet: 0.35 }).connect(delay);
-    const guitar = new Tone.MonoSynth({
-      oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", frequency: 2200, Q: 1 },
-      envelope: { attack: 0.005, decay: 0.35, sustain: 0.2, release: 0.6 },
-      filterEnvelope: { attack: 0.005, decay: 0.3, sustain: 0.3, release: 0.5, baseFrequency: 400, octaves: 3 },
-    }).connect(guitarDistortion);
-    guitar.volume.value = -10;
-
-    // heavily distorted vocal chop
-    const chopCrush = new Tone.BitCrusher(4).connect(delay);
-    const chopDistortion = new Tone.Distortion({ distortion: 0.5, wet: 0.4 }).connect(chopCrush);
-    const chop = new Tone.FMSynth({
-      harmonicity: 1.5,
-      modulationIndex: 6,
-      envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 },
-      modulation: { type: "square" },
-    }).connect(chopDistortion);
-    chop.volume.value = -9;
-
-    // noise / chaos production
-    const noiseDistortion = new Tone.Distortion({ distortion: 0.65, wet: 0.5 }).connect(limiter);
-    const noise = new Tone.NoiseSynth({
-      noise: { type: "pink" },
-      envelope: { attack: 0.001, decay: 0.15, sustain: 0 },
-    }).connect(noiseDistortion);
-    noise.volume.value = -16;
-
-    // sparse sub pulse, cloud-rap foundation
+    // cold, sub-zero 808
     const sub = new Tone.MonoSynth({
       oscillator: { type: "sine" },
-      envelope: { attack: 0.05, decay: 0.4, sustain: 0.3, release: 0.6 },
-      filter: { type: "lowpass", frequency: 300 },
+      filter: { type: "lowpass", frequency: 900, Q: 0.5 },
+      envelope: { attack: 0.01, decay: 0.25, sustain: 0.4, release: 0.3 },
+      portamento: 0.03,
     }).connect(limiter);
-    sub.volume.value = -14;
+    sub.volume.value = -6;
+
+    // snappy clean snare
+    const snareFilter = new Tone.Filter({ type: "bandpass", frequency: 2000, Q: 1.3 }).connect(reverb);
+    const snare = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.12, sustain: 0 },
+    }).connect(snareFilter);
+    snare.volume.value = -12;
+
+    // crisp trap hi-hat
+    const hihatFilter = new Tone.Filter({ type: "highpass", frequency: 8500 }).connect(reverb);
+    const hihat = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.025, sustain: 0 },
+    }).connect(hihatFilter);
+    hihat.volume.value = -18;
+
+    // extremely high autotuned falsetto lead
+    const leadReverb = new Tone.Freeverb({ roomSize: 0.8, dampening: 4000, wet: 0.35 }).connect(limiter);
+    const lead = new Tone.FMSynth({
+      harmonicity: 2,
+      modulationIndex: 1.2,
+      envelope: { attack: 0.02, decay: 0.2, sustain: 0.5, release: 0.6 },
+      modulation: { type: "sine" },
+    }).connect(leadReverb);
+    lead.volume.value = -10;
+
+    // glistening bell sparkle
+    const bell = new Tone.FMSynth({
+      harmonicity: 3.5,
+      modulationIndex: 2,
+      envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.3 },
+      modulation: { type: "sine" },
+    }).connect(reverb);
+    bell.volume.value = -16;
 
     let step = 0;
-    let prevContrast = 0;
 
     const loop = new Tone.Loop((time) => {
       const analysis = getAnalysis();
       const music = getMusic();
       const s = step % 32;
+      const s16 = step % 16;
       const blobCount = analysis.blobs.length;
       const scale = buildScaleNotes(music.rootNote, music.scaleName, 2, 2);
 
       if (s === 0) {
         const voicing = [scale[0], scale[(2 + blobCount) % scale.length], scale[(4 + blobCount) % scale.length]];
-        pad.triggerAttackRelease(voicing, "2m", time, 0.6);
+        pad.triggerAttackRelease(voicing, "2m", time, 0.55);
       }
 
-      if (s === 0 || s === 16) {
+      if (s16 === 0 || s16 === 10) {
         const lowScale = buildScaleNotes(music.rootNote, music.scaleName, 0, 1);
-        sub.triggerAttackRelease(lowScale[blobCount % lowScale.length], "2n", time, 0.5);
+        sub.triggerAttackRelease(lowScale[blobCount % lowScale.length], "4n", time, 0.7);
       }
-
-      if (s % 4 === 0 && analysis.brightness > 0.15 && Math.random() < 0.6) {
-        const avgY = analysis.blobs.reduce((a, b) => a + b.y, 0) / Math.max(1, analysis.blobs.length);
-        const idx = Math.floor((1 - avgY) * scale.length) % scale.length;
-        guitar.triggerAttackRelease(scale[idx] ?? scale[0], "8n", time, 0.4 + analysis.edgeDensity * 0.3);
+      if (s16 === 8) {
+        snare.triggerAttackRelease("8n", time, 0.6);
       }
 
       // scan across the frame left-to-right, one column per step
-      const scanEdge = analysis.columns[s % 16] ?? 0;
-      if (scanEdge > 0.14 && Math.random() < 0.5) {
-        const note = scale[(s + blobCount) % scale.length];
-        chop.triggerAttackRelease(note, "16n", time, 0.4 + scanEdge * 0.4);
-        chop.frequency.rampTo(Tone.Frequency(note).transpose(-7).toFrequency(), 0.12, time + 0.02);
+      const scanEdge = analysis.columns[s16] ?? 0;
+      if (scanEdge > 0.16) {
+        hihat.triggerAttackRelease("32n", time, 0.15 + scanEdge * 0.45);
       }
 
-      if (Math.abs(analysis.contrast - prevContrast) > 0.08) {
-        noise.triggerAttackRelease("8n", time, 0.4 + analysis.contrast * 0.5);
+      // extremely high, autotune-quantized falsetto — no glide between notes
+      if (s16 % 4 === 2 && analysis.brightness > 0.12 && Math.random() < 0.55) {
+        const highScale = buildScaleNotes(music.rootNote, music.scaleName, 4, 2);
+        const avgY = analysis.blobs.reduce((a, b) => a + b.y, 0) / Math.max(1, analysis.blobs.length);
+        const idx = Math.floor((1 - avgY) * highScale.length) % highScale.length;
+        const note = highScale[idx] ?? highScale[0];
+        lead.triggerAttackRelease(note, "8n", time, 0.4);
+        if (Math.random() < 0.25) {
+          lead.triggerAttackRelease(note, "32n", time + 0.06, 0.3);
+        }
       }
-      prevContrast = analysis.contrast;
+
+      if (Math.random() < 0.08 + analysis.contrast * 0.15) {
+        const bellScale = buildScaleNotes(music.rootNote, music.scaleName, 4, 2);
+        bell.triggerAttackRelease(bellScale[Math.floor(Math.random() * bellScale.length)], "16n", time, 0.3);
+      }
 
       step++;
     }, "16n").start(0);
@@ -104,16 +116,14 @@ export const ambientPreset: Preset = {
     return () => {
       loop.dispose();
       pad.dispose();
-      chorus.dispose();
-      guitar.dispose();
-      guitarDistortion.dispose();
-      chop.dispose();
-      chopCrush.dispose();
-      chopDistortion.dispose();
-      noise.dispose();
-      noiseDistortion.dispose();
       sub.dispose();
-      delay.dispose();
+      snare.dispose();
+      snareFilter.dispose();
+      hihat.dispose();
+      hihatFilter.dispose();
+      lead.dispose();
+      leadReverb.dispose();
+      bell.dispose();
       reverb.dispose();
       limiter.dispose();
     };
