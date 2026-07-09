@@ -8,7 +8,7 @@ export const ambientPreset: Preset = {
   bpm: 85,
   enabled: true,
   description:
-    "Ecco2k PXE-inspired: a glassy autotune-like lead follows blob movement over slow pad chords, intimate plucked textures scan the frame, and glitch stutters bite on contrast spikes.",
+    "Ecco2k PXE-inspired: a glassy autotune-like lead follows blob movement over slow pad chords, bitcrushed vocal-chop stutters scan the frame with a pitch slide-off, and glitch bursts bite on contrast spikes.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-2).toDestination();
     const reverb = new Tone.Freeverb({ roomSize: 0.85, dampening: 3500, wet: 0.4 }).connect(limiter);
@@ -29,8 +29,14 @@ export const ambientPreset: Preset = {
     }).connect(vibrato);
     lead.volume.value = -12;
 
-    const pluck = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 3200, resonance: 0.85 }).connect(delay);
-    pluck.volume.value = -10;
+    const chopCrush = new Tone.BitCrusher(5).connect(delay);
+    const chop = new Tone.FMSynth({
+      harmonicity: 1.5,
+      modulationIndex: 6,
+      envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 },
+      modulation: { type: "square" },
+    }).connect(chopCrush);
+    chop.volume.value = -9;
 
     const glitchCrush = new Tone.BitCrusher(3).connect(limiter);
     const glitch = new Tone.NoiseSynth({
@@ -60,10 +66,16 @@ export const ambientPreset: Preset = {
         lead.triggerAttackRelease(scale[idx] ?? scale[0], "4n", time, 0.35);
       }
 
+      // bitcrushed vocal-chop stutter that slides pitch down, like an
+      // autotuned syllable getting yanked off — scans one column per step
       const scanEdge = analysis.columns[s % 16] ?? 0;
       if (scanEdge > 0.14 && Math.random() < 0.5) {
         const note = scale[(s + blobCount) % scale.length];
-        pluck.triggerAttack(note, time);
+        chop.triggerAttackRelease(note, "16n", time, 0.4 + scanEdge * 0.35);
+        chop.frequency.rampTo(Tone.Frequency(note).transpose(-7).toFrequency(), 0.12, time + 0.02);
+        if (Math.random() < 0.3) {
+          chop.triggerAttackRelease(note, "32n", time + 0.055, 0.3);
+        }
       }
 
       if (Math.abs(analysis.contrast - prevContrast) > 0.1) {
@@ -79,7 +91,8 @@ export const ambientPreset: Preset = {
       pad.dispose();
       lead.dispose();
       vibrato.dispose();
-      pluck.dispose();
+      chop.dispose();
+      chopCrush.dispose();
       glitch.dispose();
       glitchCrush.dispose();
       delay.dispose();

@@ -2,8 +2,25 @@ import * as Tone from "tone";
 import type { Preset } from "./types";
 import { buildScaleNotes } from "../scales";
 
-const KICK_STEPS = new Set([0, 3, 8, 11]);
-const GHOST_STEPS = [1, 6, 9, 14];
+interface BarBeat {
+  kick: boolean;
+  crack: boolean;
+  metal: boolean;
+  screech: boolean;
+}
+
+function rollBar(density: number): BarBeat[] {
+  const pattern: BarBeat[] = [];
+  for (let i = 0; i < 16; i++) {
+    pattern.push({
+      kick: Math.random() < 0.22 + density * 0.3,
+      crack: Math.random() < 0.15 + density * 0.35,
+      metal: Math.random() < 0.12 + density * 0.25,
+      screech: Math.random() < 0.04 + density * 0.08,
+    });
+  }
+  return pattern;
+}
 
 export const deconstructedClubPreset: Preset = {
   id: "deconstructed-club",
@@ -11,45 +28,55 @@ export const deconstructedClubPreset: Preset = {
   bpm: 145,
   enabled: true,
   description:
-    "Kavari-inspired brutalist club: distorted glitch-jump sub, industrial metallic hits, a dark ambient drone bed, and noise blasts on contrast spikes.",
+    "KAVARI-inspired: festival-banger fragments ripped apart and stitched back into overwhelming noise and crunch — whip-crack transients, screeches, sudden crashes, and a bass pattern that never lands the same way twice.",
   build(getAnalysis, getMusic) {
     const limiter = new Tone.Limiter(-1).toDestination();
-    const masterDistortion = new Tone.Distortion({ distortion: 0.5, wet: 0.35 }).connect(limiter);
-    const reverb = new Tone.Freeverb({ roomSize: 0.8, dampening: 2000, wet: 0.2 }).connect(masterDistortion);
+    const masterDistortion = new Tone.Distortion({ distortion: 0.55, wet: 0.4 }).connect(limiter);
 
-    const bassDistortion = new Tone.Distortion({ distortion: 0.7, wet: 0.5 }).connect(masterDistortion);
-    const bassCrush = new Tone.BitCrusher(6).connect(bassDistortion);
+    const bassCrush = new Tone.BitCrusher(5).connect(masterDistortion);
     const bass = new Tone.MonoSynth({
       oscillator: { type: "square" },
-      filter: { type: "lowpass", frequency: 500, Q: 4 },
-      envelope: { attack: 0.001, decay: 0.2, sustain: 0.3, release: 0.15 },
-      filterEnvelope: { attack: 0.001, decay: 0.1, sustain: 0.2, release: 0.1, baseFrequency: 80, octaves: 4 },
+      filter: { type: "lowpass", frequency: 450, Q: 5 },
+      envelope: { attack: 0.001, decay: 0.15, sustain: 0.2, release: 0.1 },
+      filterEnvelope: { attack: 0.001, decay: 0.08, sustain: 0.15, release: 0.08, baseFrequency: 70, octaves: 4.5 },
     }).connect(bassCrush);
-    bass.volume.value = -4;
+    bass.volume.value = -3;
+
+    const crackDistortion = new Tone.Distortion({ distortion: 0.9, wet: 0.7 }).connect(masterDistortion);
+    const crack = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.0005, decay: 0.03, sustain: 0 },
+    }).connect(crackDistortion);
+    crack.volume.value = -6;
+
+    const screechFilter = new Tone.Filter({ type: "bandpass", frequency: 2000, Q: 18 }).connect(masterDistortion);
+    const screech = new Tone.FMSynth({
+      harmonicity: 7,
+      modulationIndex: 30,
+      envelope: { attack: 0.02, decay: 0.5, sustain: 0.1, release: 0.3 },
+      modulation: { type: "sawtooth" },
+    }).connect(screechFilter);
+    screech.volume.value = -14;
 
     const metal = new Tone.MetalSynth({
-      envelope: { attack: 0.001, decay: 0.15, release: 0.05 },
-      harmonicity: 5.1,
-      modulationIndex: 22,
-      resonance: 3000,
-      octaves: 1.2,
+      envelope: { attack: 0.001, decay: 0.12, release: 0.04 },
+      harmonicity: 6.1,
+      modulationIndex: 26,
+      resonance: 3500,
+      octaves: 1.4,
     }).connect(masterDistortion);
-    metal.volume.value = -14;
+    metal.volume.value = -12;
 
-    const droneFilter = new Tone.Filter({ type: "lowpass", frequency: 300, Q: 1 }).connect(reverb);
-    const drone = new Tone.FatOscillator({ type: "sawtooth", count: 3, spread: 40 }).connect(droneFilter);
-    drone.volume.value = -20;
-    drone.start();
-
-    const noiseDistortion = new Tone.Distortion({ distortion: 0.8, wet: 0.6 }).connect(masterDistortion);
-    const noiseBurst = new Tone.NoiseSynth({
+    const crashDistortion = new Tone.Distortion({ distortion: 0.85, wet: 0.65 }).connect(masterDistortion);
+    const crash = new Tone.NoiseSynth({
       noise: { type: "white" },
-      envelope: { attack: 0.001, decay: 0.3, sustain: 0 },
-    }).connect(noiseDistortion);
-    noiseBurst.volume.value = -16;
+      envelope: { attack: 0.001, decay: 0.35, sustain: 0 },
+    }).connect(crashDistortion);
+    crash.volume.value = -8;
 
     let step = 0;
     let prevContrast = 0;
+    let barPattern: BarBeat[] = [];
 
     const loop = new Tone.Loop((time) => {
       const analysis = getAnalysis();
@@ -57,32 +84,35 @@ export const deconstructedClubPreset: Preset = {
       const s = step % 16;
       const blobCount = analysis.blobs.length;
 
-      droneFilter.frequency.rampTo(150 + analysis.brightness * 900, 0.3);
-      const droneScale = buildScaleNotes(music.rootNote, music.scaleName, -1, 1);
-      drone.frequency.rampTo(Tone.Frequency(droneScale[0]).toFrequency(), 0.5);
+      if (s === 0) {
+        barPattern = rollBar(analysis.edgeDensity);
+      }
+      const beat = barPattern[s] ?? { kick: false, crack: false, metal: false, screech: false };
 
-      if (KICK_STEPS.has(s)) {
+      if (beat.kick) {
         const scale = buildScaleNotes(music.rootNote, music.scaleName, 0, 2);
-        const note = scale[blobCount % scale.length];
-        bass.triggerAttackRelease(note, "8n", time, 0.95);
+        const note = scale[(blobCount + s) % scale.length];
+        bass.triggerAttackRelease(note, "16n", time, 0.7 + Math.random() * 0.3);
       }
-      if (GHOST_STEPS.includes(s) && Math.random() < 0.25 + analysis.contrast * 0.4) {
-        bass.triggerAttackRelease("C1", "16n", time, 0.5);
+      if (beat.crack) {
+        crack.triggerAttackRelease("32n", time, 0.6 + Math.random() * 0.4);
+      }
+      if (beat.metal) {
+        metal.triggerAttackRelease("16n", time, 0.4 + Math.random() * 0.4);
+      }
+      if (beat.screech) {
+        screechFilter.frequency.rampTo(600 + Math.random() * 5000, 0.15);
+        screech.triggerAttackRelease("A3", "8n", time, 0.3 + analysis.contrast * 0.3);
       }
 
-      if (s === 4 || s === 12) {
-        metal.triggerAttackRelease("16n", time, 0.7);
-      }
-
-      // scan across the frame left-to-right, one column per step; the
-      // metallic tick only fires where the scan crosses a real edge
+      // scan across the frame left-to-right, one column per step
       const scanEdge = analysis.columns[s] ?? 0;
-      if (scanEdge > 0.18) {
+      if (scanEdge > 0.2) {
         metal.triggerAttackRelease("32n", time, 0.15 + scanEdge * 0.4);
       }
 
-      if (Math.abs(analysis.contrast - prevContrast) > 0.12) {
-        noiseBurst.triggerAttackRelease("8n", time, 0.5 + analysis.contrast * 0.4);
+      if (Math.abs(analysis.contrast - prevContrast) > 0.1) {
+        crash.triggerAttackRelease("8n", time, 0.6 + analysis.contrast * 0.4);
       }
       prevContrast = analysis.contrast;
 
@@ -93,13 +123,13 @@ export const deconstructedClubPreset: Preset = {
       loop.dispose();
       bass.dispose();
       bassCrush.dispose();
-      bassDistortion.dispose();
+      crack.dispose();
+      crackDistortion.dispose();
+      screech.dispose();
+      screechFilter.dispose();
       metal.dispose();
-      drone.dispose();
-      droneFilter.dispose();
-      noiseBurst.dispose();
-      noiseDistortion.dispose();
-      reverb.dispose();
+      crash.dispose();
+      crashDistortion.dispose();
       masterDistortion.dispose();
       limiter.dispose();
     };
