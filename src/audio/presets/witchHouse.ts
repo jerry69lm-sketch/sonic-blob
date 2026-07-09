@@ -13,13 +13,15 @@ export const witchHousePreset: Preset = {
     const limiter = new Tone.Limiter(-1).toDestination();
     const reverb = new Tone.Freeverb({ roomSize: 0.9, dampening: 2000, wet: 0.45 }).connect(limiter);
 
-    // choir drowning in digital clipping
-    const choirClip = new Tone.Distortion({ distortion: 0.6, wet: 0.55 }).connect(reverb);
+    // choir drowning in digital clipping — murky, not piercing: the
+    // distortion's harsh upper harmonics get tamed by a lowpass right after
+    const choirLowpass = new Tone.Filter({ type: "lowpass", frequency: 2600, Q: 0.6 }).connect(reverb);
+    const choirClip = new Tone.Distortion({ distortion: 0.4, wet: 0.4 }).connect(choirLowpass);
     const choir = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "sawtooth" },
       envelope: { attack: 1.8, decay: 1, sustain: 0.7, release: 3 },
     }).connect(choirClip);
-    choir.volume.value = -14;
+    choir.volume.value = -16;
 
     // molasses synth drone
     const droneFilter = new Tone.Filter({ type: "lowpass", frequency: 350, Q: 1 }).connect(reverb);
@@ -44,13 +46,22 @@ export const witchHousePreset: Preset = {
       envelope: { attack: 0.001, decay: 0.5, sustain: 0, release: 0.5 },
     }).connect(limiter);
 
-    const snareFilter = new Tone.Filter({ type: "bandpass", frequency: 1400, Q: 1 }).connect(reverb);
-    const snareDistortion = new Tone.Distortion({ distortion: 0.4, wet: 0.35 }).connect(snareFilter);
+    const snareFilter = new Tone.Filter({ type: "bandpass", frequency: 1100, Q: 0.8 }).connect(reverb);
+    const snareDistortion = new Tone.Distortion({ distortion: 0.22, wet: 0.2 }).connect(snareFilter);
     const snare = new Tone.NoiseSynth({
       noise: { type: "pink" },
       envelope: { attack: 0.001, decay: 0.3, sustain: 0 },
     }).connect(snareDistortion);
-    snare.volume.value = -10;
+    snare.volume.value = -11;
+
+    // scan tick: a short, dry, bright click that cuts through the murk —
+    // clearly on when the scan crosses an edge, clearly off otherwise
+    const tickFilter = new Tone.Filter({ type: "bandpass", frequency: 2500, Q: 5 }).connect(limiter);
+    const tick = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.02, sustain: 0 },
+    }).connect(tickFilter);
+    tick.volume.value = -6;
 
     // tape-stutter skip: pitch drops fast after the hit, like a tape slowing to a stop
     const stutter = new Tone.FMSynth({
@@ -87,12 +98,19 @@ export const witchHousePreset: Preset = {
         snare.triggerAttackRelease("4n", time, 0.7 + analysis.contrast * 0.3);
       }
 
-      // pitched-down vocal chop, driven by the frame scan
+      // scan across the frame left-to-right, one column per step. A clear
+      // threshold keeps "edge here" vs "nothing here" audibly distinct: the
+      // dry tick only fires on a real edge, brighter/louder the stronger it is
       const scanEdge = analysis.columns[s] ?? 0;
-      if (scanEdge > 0.18 && Math.random() < 0.5) {
-        const vocalScale = buildScaleNotes(music.rootNote, music.scaleName, -1, 2);
-        const note = vocalScale[blobCount % vocalScale.length];
-        vocal.triggerAttackRelease(note, "4n", time, 0.4 + scanEdge * 0.3);
+      if (scanEdge > 0.3) {
+        tickFilter.frequency.value = 1400 + scanEdge * 4500;
+        tick.triggerAttackRelease("32n", time, 0.3 + scanEdge * 0.6);
+
+        if (Math.random() < 0.5) {
+          const vocalScale = buildScaleNotes(music.rootNote, music.scaleName, -1, 2);
+          const note = vocalScale[blobCount % vocalScale.length];
+          vocal.triggerAttackRelease(note, "4n", time, 0.35 + scanEdge * 0.35);
+        }
       }
 
       // tape-stutter skip on sudden blob jumps
@@ -109,6 +127,7 @@ export const witchHousePreset: Preset = {
       loop.dispose();
       choir.dispose();
       choirClip.dispose();
+      choirLowpass.dispose();
       drone.dispose();
       droneFilter.dispose();
       vocal.dispose();
@@ -117,6 +136,8 @@ export const witchHousePreset: Preset = {
       snare.dispose();
       snareFilter.dispose();
       snareDistortion.dispose();
+      tick.dispose();
+      tickFilter.dispose();
       stutter.dispose();
       reverb.dispose();
       limiter.dispose();
